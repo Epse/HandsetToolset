@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "HandsetToolset (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "HandsetToolset (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
