@@ -21,6 +21,11 @@
                      <FontIcon Glyph="&#xE961;"/>
                  </NavigationViewItem.Icon>
              </NavigationViewItem>
+             <NavigationViewItem Tag="HandsetToolset.AboutPage" Content="About">
+                 <NavigationViewItem.Icon>
+                     <FontIcon Glyph="&#xE946;"/>
+                 </NavigationViewItem.Icon>
+             </NavigationViewItem>
          </NavigationView.MenuItems>
 
          <ScrollViewer>

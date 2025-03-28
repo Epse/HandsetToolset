@@ -13,6 +13,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <None Remove="AboutPage.xaml" />
     <None Remove="Acrylic.xaml" />
     <None Remove="MainPage.xaml" />
     <None Remove="MappingPage.xaml" />
@@ -47,6 +48,11 @@
     <PackageReference Include="CommunityToolkit.WinUI.UI.Controls.DataGrid" Version="7.1.2" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1742" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.7.250310001" />
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="AboutPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <Page Update="Acrylic.xaml">
