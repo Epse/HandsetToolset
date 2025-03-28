@@ -16,6 +16,10 @@
                     HandsetToolset is a tool developed in the open and licensed under the BSD 3-Clause license.
                     If you did not receive a copy of this license or the source code, you may retrieve them from <Hyperlink NavigateUri="https://github.com/Epse/HandsetToolset">https://github.com/Epse/HandsetToolset</Hyperlink> .
                 </Paragraph>
+                <Paragraph>
+                    We thank josef for the Result class we ended up using.
+                    <Hyperlink NavigateUri="https://josef.codes/my-take-on-the-result-class-in-c-sharp/">https://josef.codes/my-take-on-the-result-class-in-c-sharp/</Hyperlink>
+                </Paragraph>
             </RichTextBlock>
         </StackPanel>
     </Grid>
