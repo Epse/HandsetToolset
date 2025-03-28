@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Reflection;
+using System.Text.Json.Serialization;
 using Windows.System;
 using Windows.UI.Input.Preview.Injection;
 
@@ -7,9 +8,12 @@ namespace HandsetToolset;
 
 public class Mapping(string trigger, InjectedInputKeyboardInfo action)
 {
+    [JsonInclude, JsonRequired]
     public string Trigger = trigger;
+    [JsonInclude, JsonRequired]
     public InjectedInputKeyboardInfo Action = action;
 
+    [JsonIgnore]
     public string ActionText
     {
         get

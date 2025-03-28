@@ -15,6 +15,7 @@ using Microsoft.UI.Xaml.Navigation;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
 using Microsoft.UI;
+using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Media.Imaging;
 using WinRT;
@@ -31,6 +32,7 @@ namespace HandsetToolset
         {
             this.InitializeComponent();
             this.LoadIcon();
+            this.AppWindow.Closing += OnClosing;
         }
 
         private const int IDI_APPLICATION = 32512;
@@ -146,6 +148,11 @@ namespace HandsetToolset
                     ((NavigationViewItem)NavView.SelectedItem)?.Content?.ToString();
 
             }
+        }
+
+        private async void OnClosing(object sender, AppWindowClosingEventArgs e)
+        {
+            CommandProcessor.Current.Store();
         }
     }
 }
