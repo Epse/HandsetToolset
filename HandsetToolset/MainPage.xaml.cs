@@ -19,6 +19,7 @@ using Windows.Foundation.Collections;
 using Windows.Networking.Sockets;
 using Windows.Storage.Streams;
 using Windows.UI.Core;
+using ABI.Windows.Web.Http;
 using Microsoft.UI.Dispatching;
 
 // To learn more about WinUI, the WinUI project structure,
@@ -34,16 +35,11 @@ namespace HandsetToolset
         public MainPage()
         {
             this.InitializeComponent();
-            processor = CommandProcessor.Current;
             ResultCollection = new ObservableCollection<RfcommDeviceDisplay>();
         }
 
         private DeviceWatcher? deviceWatcher = null;
-        private StreamSocket? chatSocket = null;
-        private DataWriter? chatWriter = null;
-        private RfcommDeviceService? chatService = null;
         private BluetoothDevice? bluetoothDevice;
-        private CommandProcessor processor;
 
         // Used to display list of available devices to chat with
         public ObservableCollection<RfcommDeviceDisplay> ResultCollection { get; private set; }
@@ -52,6 +48,18 @@ namespace HandsetToolset
         {
             ResultCollection = new ObservableCollection<RfcommDeviceDisplay>();
             DataContext = this;
+
+            if (App.Connection != null)
+            {
+                AfterConnected();
+            }
+        }
+
+        protected override void OnNavigatingFrom(NavigatingCancelEventArgs e)
+        {
+            if (App.Connection == null) return;
+            App.Connection.Notify -= NotifyHandler;
+            App.Connection.TextReceived -= TextReceived;
         }
 
         private void RunButton_Click(object sender, RoutedEventArgs e)
@@ -200,50 +208,6 @@ namespace HandsetToolset
             ChatBox.Visibility = Visibility.Visible;
         }
 
-        private async void ReceiveStringLoop(DataReader chatReader)
-        {
-            try
-            {
-                // Read one byte at a time
-                uint size = await chatReader.LoadAsync(1);
-                if (size < 1)
-                {
-                    Disconnect(
-                        "Remote device terminated connection - make sure only one instance of server is running on remote device");
-                    return;
-                }
-
-                var current = OutputBox.Text + chatReader.ReadString(1);
-                current = processor.Process(current);
-                OutputBox.Text = current;
-
-
-                ReceiveStringLoop(chatReader);
-            }
-            catch (Exception ex)
-            {
-                lock (this)
-                {
-                    if (chatSocket == null)
-                    {
-                        // Do not print anything here -  the user closed the socket.
-                        if ((uint)ex.HResult == 0x80072745)
-                        {
-                            NotifyUser("Disconnect triggered by remote device", InfoBarSeverity.Informational);
-                        }
-                        else if ((uint)ex.HResult == 0x800703E3)
-                        {
-                            NotifyUser("The I/O operation has been aborted because of either a thread exit or an application request.", InfoBarSeverity.Informational);
-                        }
-                    }
-                    else
-                    {
-                        Disconnect("Read stream failed with error: " + ex.Message);
-                    }
-                }
-            }
-        }
-
         private async void ConnectButton_Click(object sender, RoutedEventArgs e)
         {
             // Make sure user has selected a device first
@@ -259,80 +223,49 @@ namespace HandsetToolset
 
             RfcommDeviceDisplay deviceInfoDisp = (resultsListView.SelectedItem as RfcommDeviceDisplay)!;
 
-            // Perform device access checks before trying to get the device.
-            // First, we check if consent has been explicitly denied by the user.
-            DeviceAccessStatus accessStatus = DeviceAccessInformation.CreateFromId(deviceInfoDisp.Id).CurrentStatus;
-            if (accessStatus == DeviceAccessStatus.DeniedByUser)
-            {
-                NotifyUser("This app does not have access to connect to the remote device (please grant access in Settings > Privacy > Other Devices", InfoBarSeverity.Error);
-                return;
-            }
+            var connection = await BluetoothConnection.Make(deviceInfoDisp);
 
-            // If not, try to get the Bluetooth device
-            try
+            if (connection.Failure)
             {
-                bluetoothDevice = await BluetoothDevice.FromIdAsync(deviceInfoDisp.Id);
-            }
-            catch (Exception ex)
-            {
-                NotifyUser(ex.Message, InfoBarSeverity.Error);
+                NotifyUser(connection.ToString(), InfoBarSeverity.Error);
                 ResetMainUI();
                 return;
             }
 
-            // If we were unable to get a valid Bluetooth device object,
-            // it's most likely because the user has specified that all unpaired devices
-            // should not be interacted with.
-            if (bluetoothDevice == null)
+            bluetoothDevice = connection.Data.Device;
+
+            //SetChatUI(attributeReader.ReadString(serviceNameLength), bluetoothDevice.Name);
+            SetChatUI("Placeholder", bluetoothDevice.Name);
+
+            App.Connection = connection.Data;
+            App.Connection.Run();
+            AfterConnected();
+        }
+
+        private void AfterConnected()
+        {
+            if (App.Connection == null) return;
+
+            if (ResultCollection.Count == 0)
             {
-                NotifyUser("Bluetooth Device returned null. Access Status = " + accessStatus.ToString(), InfoBarSeverity.Error);
-                return;
+                ResultCollection.Add(App.Connection.Display);
+                resultsListView.SelectedIndex = 0;
             }
 
-            var rfcommServices = await bluetoothDevice.GetRfcommServicesForIdAsync(
-                RfcommServiceId.SerialPort, BluetoothCacheMode.Uncached);
+            App.Connection.Notify += NotifyHandler;
+            App.Connection.TextReceived += TextReceived;
 
-            if (rfcommServices.Services.Count > 0)
-            {
-                chatService = rfcommServices.Services[0];
-            }
-            else
-            {
-                NotifyUser(
-                   "Could not discover the chat service on the remote device",
-                   InfoBarSeverity.Informational);
-                ResetMainUI();
-                return;
-            }
+            SetChatUI("RFCOMM", App.Connection.Device.Name);
+        }
 
-            StopWatcher();
+        private void TextReceived(BluetoothConnection sender, string text)
+        {
+            OutputBox.Text = text;
+        }
 
-            lock (this)
-            {
-                chatSocket = new StreamSocket();
-            }
-
-            try
-            {
-                await chatSocket.ConnectAsync(chatService.ConnectionHostName, chatService.ConnectionServiceName);
-
-                //SetChatUI(attributeReader.ReadString(serviceNameLength), bluetoothDevice.Name);
-                SetChatUI("Placeholder", bluetoothDevice.Name);
-                chatWriter = new DataWriter(chatSocket.OutputStream);
-
-                DataReader chatReader = new DataReader(chatSocket.InputStream);
-                ReceiveStringLoop(chatReader);
-            }
-            catch (Exception ex) when ((uint)ex.HResult == 0x80070490) // ERROR_ELEMENT_NOT_FOUND
-            {
-                NotifyUser("Please verify that you are running the BluetoothRfcommChat server.", InfoBarSeverity.Error);
-                ResetMainUI();
-            }
-            catch (Exception ex) when ((uint)ex.HResult == 0x80072740) // WSAEADDRINUSE
-            {
-                NotifyUser("Please verify that there is no other RFCOMM connection to the same device.", InfoBarSeverity.Error);
-                ResetMainUI();
-            }
+        private void NotifyHandler(BluetoothConnection sender, string message, InfoBarSeverity severity)
+        {
+            NotifyUser(message, severity, "Bluetooth");
         }
 
         /// <summary>
@@ -394,29 +327,8 @@ namespace HandsetToolset
         /// <param name="disconnectReason"></param>
         private void Disconnect(string disconnectReason)
         {
-            if (chatWriter != null)
-            {
-                chatWriter.DetachStream();
-                chatWriter = null;
-            }
+            App.Connection?.Disconnect(disconnectReason);
 
-
-            if (chatService != null)
-            {
-                chatService.Dispose();
-                chatService = null;
-            }
-
-            lock (this)
-            {
-                if (chatSocket != null)
-                {
-                    chatSocket.Dispose();
-                    chatSocket = null;
-                }
-            }
-
-            NotifyUser(disconnectReason, InfoBarSeverity.Informational);
             ResetMainUI();
         }
 

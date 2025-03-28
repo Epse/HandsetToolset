@@ -28,6 +28,8 @@ namespace HandsetToolset
         public static string DataFolder =
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "HandsetToolset");
 
+        public static BluetoothConnection? Connection = null;
+
         /// <summary>
         /// Initializes the singleton application object.  This is the first line of authored code
         /// executed, and as such is the logical equivalent of main() or WinMain().
