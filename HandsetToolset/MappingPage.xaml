@@ -27,18 +27,18 @@
                 <ColumnDefinition Width="Auto"></ColumnDefinition>
                 <ColumnDefinition Width="Auto"></ColumnDefinition>
             </Grid.ColumnDefinitions>
-            <TextBox Grid.Column="0" PlaceholderText="Trigger" />
-            <ComboBox Grid.Column="1" PlaceholderText="Action">
-                <ComboBoxItem>Press</ComboBoxItem>
+            <TextBox Grid.Column="0" PlaceholderText="Trigger"  x:Name="TriggerBox"/>
+            <ComboBox Grid.Column="1" PlaceholderText="Action" x:Name="ActionBox">
+                <ComboBoxItem IsSelected="True">Press</ComboBoxItem>
                 <ComboBoxItem>Release</ComboBoxItem>
             </ComboBox>
-            <ComboBox x:Name="ButtonBox" ItemsSource="{x:Bind _buttons}" Grid.Column="2" PlaceholderText="Button"></ComboBox>
-            <Button Grid.Column="3" Content="Add"></Button>
+            <ComboBox x:Name="ButtonBox" ItemsSource="{x:Bind Buttons}" Grid.Column="2" PlaceholderText="Button"></ComboBox>
+            <Button Grid.Column="3" Content="Add" x:Name="AddButton" Click="AddButton_OnClick"></Button>
         </Grid>
 
         <controls:DataGrid x:Name="DataGrid" ItemsSource="{x:Bind _processor.Mappings}" AutoGenerateColumns="False">
             <controls:DataGrid.Columns>
-                <controls:DataGridTemplateColumn Header="Trigger">
+                <controls:DataGridTemplateColumn Header="Trigger" Width="*">
                     <controls:DataGridTemplateColumn.CellTemplate>
                         <DataTemplate x:DataType="local:Mapping">
                             <TextBlock Text="{x:Bind Trigger}" Padding="5" />
@@ -47,7 +47,19 @@
                 </controls:DataGridTemplateColumn>
                 <controls:DataGridTextColumn
                     Header="Action"
+                    Width="*"
                     Binding="{Binding ActionText}" />
+                <controls:DataGridTemplateColumn Header="Operations">
+                    <controls:DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate x:DataType="local:Mapping">
+                            <StackPanel Padding="5" HorizontalAlignment="Center">
+                                <Button Click="ButtonBase_OnClick">
+                                    <FontIcon Glyph="&#xE74D;"></FontIcon>
+                                </Button>
+                            </StackPanel>
+                        </DataTemplate>
+                    </controls:DataGridTemplateColumn.CellTemplate>
+                </controls:DataGridTemplateColumn>
             </controls:DataGrid.Columns>
         </controls:DataGrid>
     </StackPanel>
